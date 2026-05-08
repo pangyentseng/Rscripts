@@ -1,0 +1,29 @@
+library(Seurat)
+library(CellChat)
+library(patchwork)
+
+cc <- merge(hdrg_labeled, y = c(psorimmune_labeled, psorstromal), add.cell.ids = c("neuro","immune","stromal"))
+data.input <- cc[["RNA"]]@layers$data
+labels <- Idents(cc)
+meta <- data.frame(labels = labels, row.names = names(labels))
+cc <- JoinLayers(cc)
+
+
+cc <- createCellChat(object = cc, group.by = "ident", assay = "RNA")
+
+
+CellChatDB <- CellChatDB.human
+CellChatDB$interaction <- db
+cc@DB <- CellChatDB
+
+
+cc <- subsetData(cc)
+
+cc <- identifyOverExpressedGenes(cc, thresh.p = 1)
+cc <- identifyOverExpressedInteractions(cc)
+cc <- computeCommunProb(cc, type = "truncatedMean", trim = 0.01)
+cc <- computeCommunProbPathway(cc)
+cc <- aggregateNet(cc)
+
+groupSize <- as.numeric(table(cellChat@idents))
+netVisual_circle(cellChat@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F)
